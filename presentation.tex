@@ -121,9 +121,23 @@ around the primitive operations.
 \end{frame}
 
 \begin{frame}
-\frametitle{Conceptually}
+\frametitle{Conceptually} An Eden channel connects the outport of a
+process with an inport of a receiver process.  The channel consists of
+a writing end and a placeholder for reading.
 
-Eden provides processes connected by channels in a 1:1 topology.
+\pause
+
+Each machine runs a process, consisting of multiple threads, with a
+1:1 relation between threads and outports.
+
+\pause
+
+Sending is explicit, receiving is implicit.
+
+\pause
+
+When the reading placeholder is identified as garbage, the process
+holding the writing end can be terminated.
 \end{frame}
 
 \begin{frame}[fragile]
