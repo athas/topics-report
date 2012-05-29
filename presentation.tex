@@ -11,7 +11,21 @@
 \title{Topics in Programming Languages}
 \author{Jep}
 
-% \usetheme[nat, dogma]{Frederiksberg}
+\mode<presentation>
+{
+  \usetheme{Frankfurt}
+  %\usetheme{Warsaw} 
+  \definecolor{uofsgreen}{rgb}{.125,.5,.25}
+  \definecolor{natvidgreen}{rgb}{.196,.364,.239}
+  \definecolor{kugrey}{rgb}{.4,.4,.4}
+  \usecolortheme[named=uofsgreen]{structure}
+  \usefonttheme[onlylarge]{structuresmallcapsserif}
+  \usefonttheme[onlysmall]{structurebold}
+}
+
+\usenavigationsymbolstemplate{} % fjern navigation
+
+\setcounter{tocdepth}{1}
 
 \def\height{0.6\paperheight}
 \def\width{0.9\linewidth}
@@ -22,11 +36,116 @@
 \begin{document}
 
 \begin{frame}
-\maketitle
+\titlepage
+\end{frame}
+
+\section{Eden}
+
+\subsection{What}
+
+\begin{frame}
+\frametitle{What is Eden?}
+
+Eden is a parallel functional programming language which extends
+Haskell with constructs for the definition and instantiation of
+parallel processes.\\
+\pause
+So what's new?
 \end{frame}
 
 \begin{frame}
-Noget\pause{} om\pause{} EDI
+\frametitle{Eden is distributed}
+
+\begin{itemize}
+\item Eden is designed for distributed-memory machines (clusters).\pause
+\item This means message-passing, no shared memory.\pause
+\item Very suitable paradigm for functional programming.\pause
+\item Even better: very suitable for the Par monad!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Processes as functions}
+
+\begin{verbatim}
+process :: ( Trans a , Trans b ) =>
+  (a  b) -> Process a b
+( # )   :: ( Trans a , Trans b ) =>
+  Process a b -> a -> b
+\end{verbatim}
+\pause
+\begin{verbatim}
+fib :: Int -> Int
+fib 0 = 1
+fib 1 = 1
+fib n = process fib # (n-1) + process fib # (n-2)
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Eden skeletons}
+
+Eden provides skeletons for parallel processing tasks.
+
+\begin{verbatim}
+parMap :: ( Trans a , Trans b ) =>
+          ( a -> b ) -> [ a ] -> [ b ]
+parMap f = map (process f #)
+\end{verbatim}
+\pause
+\begin{verbatim}
+farm :: ( Trans a , Trans b ) =>
+        ([ a ] -> [[ a ]]) ->      -- ^ distribute
+         ([[ b ]] -> [ b ]) ->     -- ^ combine
+         ( a  b ) -> [ a ] ->[ b ] -- ^ map interface
+farm distribute combine f
+  = combine . ( parMap ( map f )) . distribute
+\end{verbatim}
+\pause
+We don't make use of this.
+\end{frame}
+
+\subsection{How}
+
+\begin{frame}
+\frametitle{Structure of Eden}
+
+\begin{figure}
+\includegraphics[width=5cm]{edenstructure.png}
+\end{figure}
+
+Supports PVM and MPI middleware.
+
+We use EDI, the Eden Implementation Language, a type-safe wrapper
+around the primitive operations.
+\end{frame}
+
+\begin{frame}
+\frametitle{Conceptually}
+
+Eden provides processes connected by channels in a 1:1 topology.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Concretely}
+
+\begin{verbatim}
+data ChanName' a = Chan Int# Int# Int#
+createC :: IO ( ChanName' a, a )
+spawnProcessAt :: Int -> IO () -> IO ()
+sendWith :: Strategy a -> ChanName' a -> a -> IO ()
+\end{verbatim}
+\pause
+Low-level interface:
+\begin{verbatim}
+connectToPort :: ChanName' a -> IO ()
+sendData :: Mode -> a -> IO ()
+data Mode = Connect
+           | Data
+           | Stream
+           | Instantiate Int
+\end{verbatim}
+
 \end{frame}
 
 \begin{frame}
