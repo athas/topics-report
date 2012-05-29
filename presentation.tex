@@ -242,15 +242,6 @@ put :: NFData a => IVar a -> a -> Par ()
   % This is different than MVar as you can write that multiple times.
 \end{frame}
 
-% TODO: Not sure this is actually true
-% \begin{frame}
-%   \frametitle{Par Monad - IVar vs. MVar}
-%   \begin{itemize}
-%     \item IVar: One-to-Many communication
-%     \item MVar: One-to-One communication
-%   \end{itemize}
-% \end{frame}
-
 \begin{frame}[fragile]
   \frametitle{Par Monad - Example}
   \begin{lstlisting}[language=Haskell]
@@ -285,8 +276,21 @@ runPar $ do
 \frametitle{EDI backend for monad-par}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
+
   \frametitle{Opt-out of memory leak}
+
+  \textbf{Solution}: Extend the Par Monad with a \texttt{freeIVar} function. 
+
+  \begin{lstlisting}[language=Haskell]
+freeIVar :: IVar a -> Par ()
+freeIVar ivar = Par $ sendWith rseq 
+                               (iVarChan ivar) 
+                               Data
+  \end{lstlisting}
+
+  This closes the stream; if anyone tries to read from the channel it
+  will cause a run-time error.
 
 \end{frame}
 
