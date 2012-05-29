@@ -95,9 +95,9 @@ parMap f = map (process f #)
 \pause
 \begin{verbatim}
 farm :: ( Trans a , Trans b ) =>
-        ([ a ] -> [[ a ]]) ->      -- ^ distribute
-         ([[ b ]] -> [ b ]) ->     -- ^ combine
-         ( a  b ) -> [ a ] ->[ b ] -- ^ map interface
+        ([a] -> [[a]]) ->       -- ^ distribute
+         ([[b]] -> [b]) ->      -- ^ combine
+         (a -> b) -> [a] -> [b] -- ^ map interface
 farm distribute combine f
   = combine . ( parMap ( map f )) . distribute
 \end{verbatim}
@@ -121,18 +121,26 @@ around the primitive operations.
 \end{frame}
 
 \begin{frame}
-\frametitle{Conceptually} An Eden channel connects the outport of a
-process with an inport of a receiver process.  The channel consists of
-a writing end and a placeholder for reading.
+\frametitle{Conceptually}
+
+A \textbf{channel} connects the outport of a thread with an inport of
+a receiver thread.  The channel consists of a writing end and a
+placeholder for reading.
+
+\pause
+
+A channel can be a \textbf{stream} (list), where elements are sent
+one-by-one.
 
 \pause
 
 Each machine runs a process, consisting of multiple threads, with a
-1:1 relation between threads and outports.
+one-to-one relation between threads and outports.
 
 \pause
 
-Sending is explicit, receiving is implicit.
+Sending is explicit and asynchronous, receiving is implicit and
+blocking.
 
 \pause
 
@@ -273,4 +281,7 @@ runPar $ do
 
 \end{frame}
 
+\begin{frame}
+\frametitle{EDI backend for monad-par}
+\end{frame}
 \end{document}
