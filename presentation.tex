@@ -290,7 +290,7 @@ freeIVar ivar = Par $ sendWith rseq
   \end{lstlisting}
 
   This closes the stream; if anyone tries to read from the channel it
-  will cause a run-time error.
+  will be killed by Eden.  
 
 \end{frame}
 
