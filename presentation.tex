@@ -30,24 +30,38 @@ Noget\pause{} om\pause{} EDI
 \end{frame}
 
 \begin{frame}
-Noget\pause{} om\pause{} monad-par
-\end{frame}
-
-\begin{frame}
   \frametitle{Par Monad}
   Par can be used for specifying \textbf{pure parallel computations} in which the order of the computation is not known beforehand. \newline
   
   The programmer specifies how \textbf{information flows} from one part of the computation to another, but not the order in which computations will be evaluated at runtime. Information flow is described using variables called \texttt{IVars}, which support \texttt{put} and \texttt{get} operations. \newline 
   
-\texttt{http://hackage.haskell.org/packages/archive/monad-par/0.1.0.1/doc/html/Control-Monad-Par.html}
+  \tiny{\texttt{http://hackage.haskell.org/packages/archive/monad-par/0.1.0.1/doc/html/Control-Monad-Par.html}}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Par Monad - Par}
+  \begin{lstlisting}[language=Haskell]
+fork :: Par () -> Par ()
+runPar :: Par a -> a
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Par Monad - Par}
+  \begin{lstlisting}[language=Haskell]
+fork :: Par () -> Par ()
+  \end{lstlisting}
+
+  Forks a computation to happen in parallel.
 \end{frame}
 
 \begin{frame}[fragile]
   \frametitle{Par Monad - Par}
   \begin{lstlisting}[language=Haskell]
 runPar :: Par a -> a
-fork :: Par () -> Par ()
   \end{lstlisting}
+
+  Run the parallel computations and get the value.
 \end{frame}
 
 \begin{frame}[fragile]
@@ -67,6 +81,8 @@ get :: IVar a -> Par a
 
   Read the value in a IVar. The get can only return when the value 
   has been written by a prior or parallel put to the same IVar.
+  
+  % Reading the value doesn't remove it as takeMVar would
 \end{frame}
 
 \begin{frame}[fragile]
@@ -77,6 +93,16 @@ put :: NFData a => IVar a -> a -> Par ()
     
   Put a value into a IVar. \textbf{Multiple puts} to the same IVar \textbf{are not 
     allowed}, and result in a runtime error.
+    
+  % This is different than MVar as you can write that multiple times.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Par Monad - IVar vs. MVar}
+  \begin{itemize}
+    \item IVar: One-to-Many communication
+    \item MVar: One-to-One communication
+  \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -99,5 +125,6 @@ runPar $ do
        get d
   \end{lstlisting}
 \end{frame}
+
 
 \end{document}
