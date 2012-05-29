@@ -162,6 +162,10 @@ data Mode = Connect
 
 \end{frame}
 
+\section{Par Monad}
+
+\subsection{What}
+
 \begin{frame}
   \frametitle{Par Monad}
   Par can be used for specifying \textbf{pure parallel computations} in which the order of the computation is not known beforehand. \newline
@@ -224,19 +228,20 @@ get :: IVar a -> Par a
 put :: NFData a => IVar a -> a -> Par ()
   \end{lstlisting} 
     
-  Put a value into a IVar. \textbf{Multiple puts} to the same IVar \textbf{are not 
-    allowed}, and result in a runtime error.
+  Put a value into a IVar. \textbf{Multiple puts} to the same IVar
+  \textbf{are not  allowed}, and result in a runtime error.
     
   % This is different than MVar as you can write that multiple times.
 \end{frame}
 
-\begin{frame}
-  \frametitle{Par Monad - IVar vs. MVar}
-  \begin{itemize}
-    \item IVar: One-to-Many communication
-    \item MVar: One-to-One communication
-  \end{itemize}
-\end{frame}
+% TODO: Not sure this is actually true
+% \begin{frame}
+%   \frametitle{Par Monad - IVar vs. MVar}
+%   \begin{itemize}
+%     \item IVar: One-to-Many communication
+%     \item MVar: One-to-One communication
+%   \end{itemize}
+% \end{frame}
 
 \begin{frame}[fragile]
   \frametitle{Par Monad - Example}
@@ -259,5 +264,13 @@ runPar $ do
   \end{lstlisting}
 \end{frame}
 
+\begin{frame}
+  \frametitle{Par Monad and Distributed Heaps}
+
+  Because \texttt{IVars} are write-once there's no need for shared-
+  memory; this makes it possible to implement them using a distributed
+  heap. Hence the Par Monad is a nice fit for \texttt{Eden}.
+
+\end{frame}
 
 \end{document}
