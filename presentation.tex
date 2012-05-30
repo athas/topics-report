@@ -57,8 +57,9 @@ So what's new?
 \frametitle{Eden is distributed}
 
 \begin{itemize}
-\item Eden is designed for distributed-memory machines (clusters).\pause
-\item This means message-passing, no shared memory.\pause
+\item Eden is designed for \textbf{distributed-memory} machines
+  (clusters).\pause
+\item This means \textbf{message-passing}, no shared memory.\pause
 \item Very suitable paradigm for functional programming.\pause
 \item Even better: very suitable for the Par monad!
 \end{itemize}
@@ -272,9 +273,132 @@ runPar $ do
 
 \end{frame}
 
-\begin{frame}
-\frametitle{EDI backend for monad-par}
+\section{Implementing the Par monad}
+
+\subsection{Par}
+
+\begin{frame}[fragile]
+\frametitle{Implementing the Par monad}
+
+\begin{lstlisting}[language=Haskell]
+newtype Par a = Par { runPar :: IO a }
+\end{lstlisting}
+\pause
+Par processes are easily implemented.
+
+\begin{lstlisting}[language=Haskell]
+fork m = Par $ do spawnProcessAt 0 $ runPar m
+                  return ()
+\end{lstlisting}
+\pause Future work: we can probably do better than round-robin
+scheduling.
 \end{frame}
+
+\subsection{\texttt{IVar}s}
+
+\begin{frame}[fragile]
+\frametitle{\texttt{IVar}s}
+
+Recall that \texttt{IVar}s are also futures, and the same value is
+used for both writing and reading.
+
+\begin{lstlisting}[language=Haskell]
+new :: Par (IVar a)
+get :: IVar a -> Par a
+put :: NFData a => IVar a -> a -> Par ()
+\end{lstlisting}
+
+How should we represent \texttt{IVar}s?
+
+\pause
+
+Recall how Eden channels are created.
+
+\begin{lstlisting}[language=Haskell]
+createC :: IO ( ChanName' a, a )
+\end{lstlisting}
+
+\pause
+
+Obvious, but wrong solution:
+
+\begin{lstlisting}[language=Haskell]
+newtype IVar a = IVar (ChanName' a, a)
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{\texttt{IVar} deadlocks}
+\begin{lstlisting}[language=Haskell]
+newtype IVar a = IVar (ChanName' a, a)
+createC :: IO ( ChanName' a, a )
+\end{lstlisting}
+
+The \textit{a} value returned by \texttt{createC} is a
+\textbf{blackhole}.  In the RTS, blackholes are thunks that are
+currently being evaluated by another thread.\pause
+
+Consider this program.
+
+\begin{lstlisting}[language=Haskell]
+test :: Int -> Par Int
+test x = do ivar <- new
+            fork $ put ivar (x+1)
+            get ivar
+\end{lstlisting}
+
+If \texttt{ivar} contains a black hole, then \texttt{fork} will block
+until it has been filled, as its value has to be sent to the processor
+that is going to execute the IO action.  But that IO action is the one
+that will fill the hole: we have a deadlock.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Solution to the \texttt{IVar} problem}
+
+We represent an \texttt{IVar} as a channel for writing its value, as
+well as a channel for requesting its value.
+
+\begin{lstlisting}[language=Haskell]
+data IVar a =
+  IVar {iVarReadChan :: ChanName' [ChanName' a]
+       ,iVarWriteChan :: ChanName' a}
+\end{lstlisting}
+
+To read an \texttt{IVar}:
+
+\begin{lstlisting}[language=Haskell]
+get ivar = Par $ do
+             (c,x) <- createC
+             connectToPort (iVarReadChan ivar)
+             sendData Stream c
+             return x
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Solution to the \texttt{IVar} problem}
+
+Every \texttt{IVar} now has an associated lightweight process (not an
+Eden thread!) that handles read requests.
+
+\begin{lstlisting}[language=Haskell]
+new = Par $ do
+        (rdc,rd) <- createC
+        (wrc,wr) <- createC
+        _ <- forkIO $ do
+          let val = wr
+              cs  = rd
+          mapM_ (\c -> sendWith rseq c val) cs
+        return $ IVar rdc wrc
+\end{lstlisting}
+\pause
+\textbf{Problem}: Process never terminates.
+\end{frame}
+
+\subsection{Memory leaks}
 
 \begin{frame}[fragile]
 
@@ -291,6 +415,43 @@ freeIVar ivar = Par $ sendWith rseq
 
   This closes the stream; if anyone tries to read from the channel it
   will be killed by Eden.  
+
+\end{frame}
+
+\section{Conclusions}
+
+\subsection{Benchmarking}
+
+\begin{frame}
+\frametitle{Bad benchmark}
+
+The N-body simulation benchmark from \texttt{monad-par}.
+
+\includegraphics[width=10cm]{runtimes.png}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Bad benchmark}
+
+The N-body simulation benchmark from \texttt{monad-par}.
+
+\includegraphics[width=10cm]{speedup.png}
+\end{frame}
+
+\subsection{Conclusion}
+
+\begin{frame}
+\frametitle{Conclusions}
+
+It works, and Eden seems a good fit to the Par monad facilities.\pause
+
+It seems to sort of scale.\pause
+
+The implementation is still very simplistic and somewhat crude.\pause
+
+We need a much better benchmark that shows how we can leverage a
+distributed-memory cluster.
 
 \end{frame}
 
