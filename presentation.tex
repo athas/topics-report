@@ -9,7 +9,7 @@
 \usepackage{listings}
 
 \title{Topics in Programming Languages}
-\author{Jep}
+\author{.. \& Mads Hartmann Jensen}
 
 \mode<presentation>
 {
@@ -179,7 +179,7 @@ data Mode = Connect
   \frametitle{Par Monad}
   Par can be used for specifying \textbf{pure parallel computations} in which the order of the computation is not known beforehand. \newline
   
-  The programmer specifies how \textbf{information flows} from one part of the computation to another, but not the order in which computations will be evaluated at runtime. Information flow is described using variables called \texttt{IVars}, which support \texttt{put} and \texttt{get} operations. \newline 
+  The programmer specifies how \textbf{information flows} from one part of the computation to another, but not the order in which computations will be evaluated at runtime.\newline
   
   \tiny{\texttt{http://hackage.haskell.org/packages/archive/monad-par/0.1.0.1/doc/html/Control-Monad-Par.html}}
 \end{frame}
@@ -195,19 +195,19 @@ runPar :: Par a -> a
 \begin{frame}[fragile]
   \frametitle{Par Monad - Par}
   \begin{lstlisting}[language=Haskell]
-fork :: Par () -> Par ()
+runPar :: Par a -> a
   \end{lstlisting}
 
-  Forks a computation to happen in parallel.
+  Run the parallel computations and get the value.
 \end{frame}
 
 \begin{frame}[fragile]
   \frametitle{Par Monad - Par}
   \begin{lstlisting}[language=Haskell]
-runPar :: Par a -> a
+fork :: Par () -> Par ()
   \end{lstlisting}
 
-  Run the parallel computations and get the value.
+  Forks a computation to happen in parallel.
 \end{frame}
 
 \begin{frame}[fragile]
