@@ -8,8 +8,8 @@
 \usepackage{layout}
 \usepackage{listings}
 
-\title{Topics in Programming Languages}
-\author{.. \& Mads Hartmann Jensen}
+\title{Topics in Programming Languages:\\Implementing the Par Monad with a Distributed Heap}
+\author{Troels Henriksen \& Mads Hartmann Jensen}
 
 \mode<presentation>
 {
@@ -57,6 +57,7 @@ So what's new?
 \frametitle{Eden is distributed}
 
 \begin{itemize}
+\item Implemented at the University of Marburg.\pause
 \item Eden is designed for \textbf{distributed-memory} machines
   (clusters).\pause
 \item This means \textbf{message-passing}, no shared memory.\pause
@@ -70,7 +71,7 @@ So what's new?
 
 \begin{verbatim}
 process :: ( Trans a , Trans b ) =>
-  (a  b) -> Process a b
+  (a -> b) -> Process a b
 ( # )   :: ( Trans a , Trans b ) =>
   Process a b -> a -> b
 \end{verbatim}
