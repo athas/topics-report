@@ -7,6 +7,14 @@
 \usepackage{verbatim}
 \usepackage{listings}
 
+
+\lstset{
+  language=Haskell, 
+  frame=tb, 
+  basicstyle=\footnotesize
+}
+
+
 \renewcommand{\britishhyphenmins}{22} 
 
 \let\fref\undefined
@@ -49,35 +57,52 @@ The two main functions are \texttt{process} and \texttt{\#}. The
 processes and \texttt{\#} instantiates the parallel process with the
 given argument and returns its result. \newline 
 
-\begin{lstlisting}[language=Haskell, frame=tb, basicstyle=\footnotesize]
+\begin{lstlisting}
 process :: ( Trans a , Trans b ) => (a -> b) -> Process a b
 ( # )   :: ( Trans a , Trans b ) => Process a b -> a -> b
 \end{lstlisting}
 
-These two functions are enough to write parallel programs. The example below shows a parallel implementation of the Fibonacci sequence \newline 
+These two functions are all you need to write parallel programs using
+Eden. The example below shows a parallel implementation of the
+Fibonacci sequence \newline
 
-\begin{lstlisting}[language=Haskell, frame=tb, basicstyle=\footnotesize]
+\begin{lstlisting}
 fib :: Int -> Int
 fib 0 = 1
 fib 1 = 1
 fib n = process fib # (n-1) + process fib # (n-2)
 \end{lstlisting}
 
-Eden provides a variety of skeletons for parallel processing tasks
-that  makes is faster to write parallel programs, however, they are
+Eden also provides a variety of skeletons for parallel processing tasks
+that  makes it faster to write parallel programs, however, they are
 not used in our implementation so we won't cover them here.
 
-Figure~\ref{edenstructure} shows the structure of Eden.
-
-\begin{figure}[h]
-  \includegraphics[width=5cm]{edenstructure.png}
-  \label{edenstructure}
-\end{figure}
+In our case both the process abstraction and the skeletons are too
+high-level for  our need as were mainly interested in the distributed
+heap. Instead we use EDI, the Eden Implementation Language, to
+implement the Par Monad.
 
 \subsection{EDI}
 \label{sub:edi}
 
-TODO: Mads
+At the EDI level of Eden we deal with channels. Each Eden channel
+connects an outport of the sender process to an inport of the receiver
+process. Each machine runs a process, consisting of multiple threads,
+with a one-to-one relation between threads and outports. Each thread
+of a process evaluates some expression to normal form and sends the
+result via its outport
+
+In the type-system a channel is represented as 
+
+\begin{lstlisting}
+data ChanName' a = Chan Int# Int# Int#
+data Mode = Connect | Stream | Data | Instantiate Int
+
+createC :: IO ( ChanName' a, a ) 
+connectToPort :: ChanName' a -> IO ()
+sendData :: Mode -> a -> IO ()
+\end{lstlisting}
+
 
 \section{Par Monad}
 
@@ -85,14 +110,14 @@ The Par Monad was originally described in the paper ``A monad for deterministic 
 
 Given a computation in the Par Monad you can execute it concurrently with the current computation using the \texttt{fork} function. Computations in the \texttt{Par} monad can be extracted using the \texttt{runPar} function. \newline
 
-\begin{lstlisting}[language=Haskell, frame=tb, basicstyle=\footnotesize]
+\begin{lstlisting}
 fork :: Par () -> Par ()
 runPar :: Par a -> a
 \end{lstlisting}
 
 The astute reader may notice that \texttt{fork} and \texttt{runPar} aren't very useful by themselves as you would never be able to read the values produced by the parallel computations. A way to communicate results from the child to the parent process is necessary; for this the Par monad uses a communication abstraction they call IVars. \texttt{IVar}'s also act as the entry point to the Par Monad. \newline
 
-\begin{lstlisting}[language=Haskell, frame=tb, basicstyle=\footnotesize]
+\begin{lstlisting}
 data IVar a 
 
 new :: Par (IVar a)
@@ -100,11 +125,22 @@ get :: IVar a -> Par a
 put :: NFData a => IVar a -> a -> Par ()
 \end{lstlisting}
 
-The \texttt{new} function creates a new IVar, \texttt{get} reads the value stored in the IVar and \texttt{put} writes a value to the IVar. If you invoke \texttt{get} on an empty \texttt{IVar} it will block until a value is stored in the \texttt{IVar}. Readers familiar with concurrent programming in Haskell may notice That this approach is very similar to the use of \texttt{MVar} with the main difference that IVars are write-once where \texttt{MVar}'s can be written multiple times.
+The \texttt{new} function creates a new IVar, \texttt{get} reads the
+value stored in the IVar and \texttt{put} writes a value to the IVar.
+If you invoke \texttt{get} on an empty \texttt{IVar} it will block
+until a value is stored in the \texttt{IVar}. Readers familiar with
+concurrent programming in Haskell may notice That this approach is
+very similar to the use of \texttt{MVar} with the main difference that
+IVars are write-once where \texttt{MVar}'s can be written multiple
+times.
 
-These five functions are that is needed to write parallel programs using the Par Monad. The following listing shows a small example program taken from \texttt{Control.Monad.Par} on hackage\footnote{http://hackage.haskell.org/packages/archive/monad-par/0.1.0.1/doc/html/Control-Monad-Par.html} \newline
+These five functions are that is needed to write parallel programs
+using the Par Monad. The following listing shows a small example
+program taken from \texttt{Control.Monad.Par} on
+hackage\footnote{http://hackage.haskell.org/packages/archive/monad-
+par/0.1.0.1/doc/html/Control-Monad-Par.html} \newline
 
-\begin{lstlisting}[language=Haskell, frame=tb, basicstyle=\footnotesize, numbers=left, numberstyle=\tiny]
+\begin{lstlisting}[numbers=left, numberstyle=\tiny]
 runPar $ do
    [a,b,c,d] <- sequence [new,new,new,new]
    fork $ do x <- get a; put b (x+1)
@@ -116,7 +152,11 @@ runPar $ do
    get d
 \end{lstlisting}
 
-On line 1 four \texttt{IVar}'s are created. Lines 2-8 creates tasks that read and write to different IVars in parallel. Line 9 reads the value stored in the IVar bound to d and as such this is the value returned by the entire program.The program is shown as a data-flow diagram below.
+On line 1 four \texttt{IVar}'s are created. Lines 2-8 creates tasks
+that read and write to different IVars in parallel. Line 9 reads the
+value stored in the IVar bound to d and as such this is the value
+returned by the entire program.The program is shown as a data-flow
+diagram below.
 
 \begin{lstlisting}
                             a
@@ -126,7 +166,8 @@ On line 1 four \texttt{IVar}'s are created. Lines 2-8 creates tasks that read an
                             d
 \end{lstlisting}
 
-This should be sufficient to understand the purpose and usage of the Par Monad.
+This should be sufficient to understand the purpose and usage of the
+Par Monad.
 
 \section{Implementing the Par Monad}
 
