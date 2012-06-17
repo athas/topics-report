@@ -79,6 +79,69 @@ This should be sufficient to understand the purpose and usage of the Par Monad.
 
 \section{Implementing the Par Monad}
 
+\section{Benchmarks}
+
+We have performed some limited benchmarking of our implementation of
+the Par backend, wherein we compare our performance to the default
+implementation.  Tests were performed on
+$\texttt{sci-0},\texttt{sci-1},\ldots,\texttt{sci-6}$, six computation
+nodes available on the DIKU network, with each running a quad-core
+2.40GHz Intel Xeon processor.  The \texttt{sci} systems are
+virtualised servers, resulting in unknown network topography and
+system load, which has resulted in some unpredictable variation in
+performance, and while we re-ran some benchmarks multiple times to
+obtain sensible results, there are still some inexplicable artifacts
+left.  The benchmarks are thus not a very precise indication of the
+ultimate performance potential of the EDI-based Par monad, but rather
+a basic demonstration of the viability of the approach.  A serious
+exploration of the implementation should involve benchmarks on
+dedicated cluster computing systems.  Finally, note that it is not
+possible to run the default Par monad implementation in a distributed
+setting, hence it does not benefit from access to more than the four
+CPUs available on a single machine.  The benchmark programs have been
+taken from the \texttt{monad-par} package and were unmodified.
+Specific parameters have been tuned to exhibit relatively long
+runtimes and sensible chunking of parallel work, so the results should
+not be dominated by startup overhead, or exhibit non-realistic
+workloads.
+
+Figure \ref{fig:blackscholes} shows results from an implementation of
+the Black-Scholes equation, executed with parameters corresponding to
+$20,000,000$ options divided into $1000$ blocks.  We observe
+almost-linear scaling, but also significant overhead.  As the core of
+the benchmark program is a naïve parallel map across a list of twenty
+thousand elements (one process per element), this is not particularly
+surprising, given that EDI threads are somewhat heavy compared to
+lightweight GHC threads.
+
+A probably best-case situation for our monad is shown in Figure
+\ref{fig:parfib}.  The Parfib program computes a Fibonacci number
+using the recursive formula $fib(n) = fib(n-1) + fib(n-2)$; running
+the recursive calls in parallel, except when $n$ is less than a given
+threshold.  In the benchmark, we compute $fib(50)$, with $n=30$ as the
+threshold for switching to sequential computation, resulting in a
+manageable (although still large) number of processes, each doing a
+relatively work-intensive task (computing $fib(30)$).  As a
+consequence, since the runtime is dominated by the actual work, the
+increased overhead of EDI process creation and communication is not
+very noticable, and we scale essentially linearly (except for a hiccup
+at the very end, most likely due to virtualisation artifacts).
+
+\begin{figure}
+\caption{Black-Scholes}
+\label{fig:blackscholes}
+\includegraphics[width=7cm]{blackscholes-speedup.png}
+\includegraphics[width=7cm]{blackscholes-runtimes.png}
+\end{figure}
+
+
+\begin{figure}
+\caption{Parallel computation of Fibonacci number}
+\label{parfib}
+\includegraphics[width=7cm]{parfib_monad-speedup.png}
+\includegraphics[width=7cm]{parfib_monad-runtimes.png}
+\end{figure}
+
 \section{Conclusion}
 
 \bibliography{report}
