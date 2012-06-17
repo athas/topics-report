@@ -26,7 +26,58 @@
 
 \maketitle
 
+\section{Abstract}
+
+This report describes an implementation of the Par Monad in Eden which
+is an extension of the Haskell programming language. To understand the
+implementation a rudimentary understanding of Eden and the Par Monad is 
+necessary hence the first two sections introduces these. 
+
 \section{Eden}
+
+Eden is a parallel functional programming language which extends
+Haskell with constructs for the definition and instantiation of
+parallel processes. Eden has been designed for distributed-memory
+machines, i.e. clusters, this means that it is based on 
+message-passing. This paradigm is very suitable for functional
+programming and, as it turns out, very suitable for the Par Monad
+as well. 
+
+As mentioned Eden uses the process abstraction to provide parallelism.
+The two main functions are \texttt{process} and \texttt{\#}. The
+\texttt{process} functions turns a regular function into a parallel
+processes and \texttt{\#} instantiates the parallel process with the
+given argument and returns its result. \newline 
+
+\begin{lstlisting}[language=Haskell, frame=tb, basicstyle=\footnotesize]
+process :: ( Trans a , Trans b ) => (a -> b) -> Process a b
+( # )   :: ( Trans a , Trans b ) => Process a b -> a -> b
+\end{lstlisting}
+
+These two functions are enough to write parallel programs. The example below shows a parallel implementation of the Fibonacci sequence \newline 
+
+\begin{lstlisting}[language=Haskell, frame=tb, basicstyle=\footnotesize]
+fib :: Int -> Int
+fib 0 = 1
+fib 1 = 1
+fib n = process fib # (n-1) + process fib # (n-2)
+\end{lstlisting}
+
+Eden provides a variety of skeletons for parallel processing tasks
+that  makes is faster to write parallel programs, however, they are
+not used in our implementation so we won't cover them here.
+
+Figure~\ref{edenstructure} shows the structure of Eden.
+
+\begin{figure}[h]
+  \includegraphics[width=5cm]{edenstructure.png}
+  \label{edenstructure}
+\end{figure}
+
+\subsection{EDI}
+\label{sub:edi}
+
+TODO: Mads
 
 \section{Par Monad}
 
@@ -78,6 +129,8 @@ On line 1 four \texttt{IVar}'s are created. Lines 2-8 creates tasks that read an
 This should be sufficient to understand the purpose and usage of the Par Monad.
 
 \section{Implementing the Par Monad}
+
+TODO: Mads
 
 \section{Conclusion}
 
