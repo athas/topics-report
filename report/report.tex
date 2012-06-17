@@ -26,9 +26,33 @@
 
 \maketitle
 
+\section{Introduction}
+
+After many false starts throughout the past twenty years, physical
+laws are finally forcing parallel computers into the mainstream.  This
+creates many challenges for programmers accustomed to sequential
+programming, but also motivation for developing new techniques.
+Functional parallel programming is an application of classical
+functional programming techniques, such as higher-order functions and
+purity, to the problem of parallelism.  In Haskell, the \textit{Par
+  monad} (covered in detail in section \ref{sec:parmonad}) is an
+abstract programming interface for doing parallel computing based on
+write-once communication variables.  Unfortunately, the common
+implementation of the Par monad is fundamentally based on running
+multiple threads within a single operating system process, which means
+that the program cannot take advantage of more than one physical
+machine.  Eden (covered in detail in section \ref{sec:eden}) is an
+implementation of a \textit{distributed heap} for Haskell, that makes
+it possible to distribute a Haskell program across an entire network
+of machines.  We present an implementation of the Par monad that makes
+use of the distributed heap provided by Eden, and demonstrate how
+unchanged programs can now run on cluster computers.
+
 \section{Eden}
+\label{sec:eden}
 
 \section{Par Monad}
+\label{sec:parmonad}
 
 The Par Monad was originally described in the paper ``A monad for deterministic parallelism''\cite{parmonad}. As the name suggests it is a monad for specifying pure parallel computations. It is especially well suited for dataflow networks. The purpose of this section is to make the reader comfortable with the Par Monad such that the next section will be understandable.
 
