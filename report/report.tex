@@ -89,12 +89,10 @@ fib 1 = 1
 fib n = process fib # (n-1) + process fib # (n-2)
 \end{lstlisting}
 
-Eden also provides a variety of skeletons for parallel processing tasks
-that  makes it faster to write parallel programs, however, they are
-not used in our implementation so we won't cover them here.
-
-In our case both the process abstraction and the skeletons are too
-high-level for  our need as we're mainly interested in the distributed
+Eden also provides a variety of skeletons for parallel processing
+tasks that makes it faster to write parallel programs. However, in
+our case both the process abstraction and the skeletons are too high-
+level for our need as we're mainly interested in the distributed
 heap. Instead we use EDI, the Eden Implementation Language, to
 implement the Par Monad.
 
@@ -119,16 +117,16 @@ connectToPort :: ChanName' a -> IO ()
 sendData :: Mode -> a -> IO ()
 \end{lstlisting}
 
-\texttt{createC} creates a primitive imput channel and a handle to
-access the data received via this channel. \texttt{connectToPort}
-connects the outport of the thread executing the function call to a
-given channel i.e. the corresponding inport. When using
-\texttt{sendData} you pass a mode as well as the data to be
+The function \texttt{createC} creates a primitive imput channel and a
+handle to access the data received via this channel.
+\texttt{connectToPort} connects the outport of the thread executing
+the function call to a given channel i.e. the corresponding inport.
+When using \texttt{sendData} you pass a mode as well as the data to be
 transmitted. The \texttt{Connect} \texttt{Mode} is initially sent to
 connect the outport to the corresponding inport. the \texttt{Data
 Mode} is used to send a single value whereas \texttt{Stream} is used
-to send the values of a data stream. The Instantiate i message is sent
-to start a remote process on PE i.
+to send the values of a data stream. The \texttt{Instantiate i} message
+is sent to start a remote process on PE i.
 
 Retrieving data is done implicitly by the runtime system which writes
 data received via an inport directly into a placeholder in the heap
