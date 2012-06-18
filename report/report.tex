@@ -6,7 +6,7 @@
 \usepackage{amsthm}
 \usepackage{verbatim}
 \usepackage{listings}
-
+\usepackage{placeins}
 
 \lstset{
   language=Haskell, 
@@ -265,43 +265,68 @@ new = Par $ do
 \end{lstlisting}
 
 On line 2 we create the channel for reading and on line 3 we create
-the channel for writing the value of the  \texttt{IVar}. On lines 4 to
+the channel for writing the value of the \texttt{IVar}. On lines 4 to
 7 we create a lightweight Haskell thread the handles all of the read
 request. Line 5 will block till a process has written a value to the
 write channel. On line 6 we utilize Edens ability to transmit streams
 element-by-element and handle each read request sequentially using
 \texttt{mapM\_}. This fixes our blackhole problem but unfortunately
-introduces a new one: The thread on lines 5 -7 never terminates as we
-can't tell when to stop waiting for more read requests. If there are
-no requests mapM\_ will be waiting indefinitely and as such represents
-a memory leak.
+introduces a new one: The thread on lines 5 -7 never terminates (the
+list \texttt{cs} is infinite unless the channel is explicitly closed)
+as we can't tell when to stop waiting for more read requests. If there
+are no requests mapM\_ will be waiting indefinitely and as such
+represents a memory leak.
 
-\subsection{Resource leak}
+\subsection{Solving the resource leak}
 
-I'll be writing something about the process leak here.
+There is no conceptual problem in describing the circumstances under
+which the \texttt{IVar} thread may be terminated: it has served its
+purpose once all references to the \texttt{IVar} have been garbage
+collected (note in particular that the thread itself does not contain
+a reference to the \texttt{IVar}).  The problem is purely technical,
+as there is no pre-existing facility for detecting when no node in the
+system contains a reference to the \texttt{IVar}.  The simplest
+solution, and the one we have implemented, is to define a function for
+manually destroying an \texttt{IVar} once it has been used.
+
+\begin{lstlisting}[numbers=left, numberstyle=\tiny]
+freeIVar :: IVar a -> Par ()
+freeIVar ivar = Par $ do connectToPort (iVarReadChan ivar)
+                         sendData Data []
+\end{lstlisting}
+
+This is done by closing the stream channel (\texttt{cs}) that the
+\texttt{IVar} thread is reading.  Reading from the \texttt{IVar} after
+it has been freed causes undefined behaviour, as does double-freeing.
+Forgetting to call \texttt{freeIVar} results in a resource leak.  In
+general, many applications read only once from each \texttt{IVar}, so
+in practice this solution is not too onerous.  It is, however, hardly
+elegant, and not part of the normal Par monad API, so let us consider
+a design for automated \texttt{IVar} cleanup.
+
+In the following, we use the term \textit{\texttt{IVar} object} to
+refer to the actual object on the Haskell heap.  Note in particular
+that several physically distinct \texttt{IVar} objects may refer to
+the same logical \texttt{IVar}.  As \texttt{IVar}s cannot contain
+circular references, reference counting is possible.  We extend the
+\texttt{IVar} thread with a counter initialised to one, and the
+ability to accept three different messages: the usual read-request,
+and \texttt{INC}/\texttt{DEC} messages that increase and decrease the
+counter.  If the counter ever reaches zero, the thread terminates
+itself.  Whenever the runtime system copies the \texttt{IVar} object,
+which is done only when a new process is created, it must send an
+\texttt{INC} message to its controlling thread.  A finalizer is
+associated is associated with each \texttt{IVar} object that sends a
+\texttt{DEC} message when the object is garbage collected.  Hence,
+when no node has any references left, the counter will reach zero, and
+the \texttt{IVar} thread terminate.
+
+Detecting the copying of the \texttt{IVar} object requires an
+extension to the Eden runtime system.  This extension could be made
+generally useful by defining it at the level of stream channels, where
+a channel is automatically closed when no more references to it exist.
 
 \section{Performance}
-
-\begin{figure}
-\caption{Parallel computation of Fibonacci numbers}
-\label{fig:parfib}
-\includegraphics[width=7cm]{parfib_monad-speedup.png}
-\includegraphics[width=7cm]{parfib_monad-runtimes.png}
-\end{figure}
-
-\begin{figure}
-\caption{Black-Scholes}
-\label{fig:blackscholes}
-\includegraphics[width=7cm]{blackscholes-speedup.png}
-\includegraphics[width=7cm]{blackscholes-runtimes.png}
-\end{figure}
-
-\begin{figure}
-\caption{N-body problem}
-\label{fig:nbody}
-\includegraphics[width=7cm]{nbody-speedup.png}
-\includegraphics[width=7cm]{nbody-runtimes.png}
-\end{figure}
 
 We have performed limited benchmarking of our implementation of the
 Par backend, wherein we compare our performance to the default
@@ -314,7 +339,7 @@ system load, which has resulted in some unpredictable variation in
 performance, and while we re-ran some benchmarks multiple times to
 obtain sensible results, there are still some inexplicable artifacts
 left.  The benchmarks are thus not a very precise indication of the
-ultimate performance potential of the EDI-based Par monad, but rather
+ultimate performance potential of the Eden-based Par monad, but rather
 a basic demonstration of the viability of the approach.  A serious
 exploration of the implementation should involve benchmarks on
 dedicated cluster computing systems.  Finally, note that it is not
@@ -327,6 +352,13 @@ runtimes and sensible chunking of parallel work, so the results should
 not be dominated by startup overhead, or exhibit non-realistic
 workloads.
 
+\begin{figure}
+\caption{Parallel computation of Fibonacci numbers}
+\label{fig:parfib}
+\includegraphics[width=7cm]{parfib_monad-speedup.png}
+\includegraphics[width=7cm]{parfib_monad-runtimes.png}
+\end{figure}
+
 A probably best-case situation for our monad is shown in Figure
 \ref{fig:parfib}.  The Parfib program computes a Fibonacci number
 using the recursive formula $fib(n) = fib(n-1) + fib(n-2)$; running
@@ -336,9 +368,16 @@ threshold for switching to sequential computation, resulting in a
 manageable (although still large) number of processes, each doing a
 relatively work-intensive task (computing $fib(30)$).  As a
 consequence, since the runtime is dominated by the actual work, the
-increased overhead of EDI process creation and communication is not
+increased overhead of Eden process creation and communication is not
 very noticable, and we scale essentially linearly (except for a hiccup
 at the very end, most likely due to virtualisation artifacts).
+
+\begin{figure}
+\caption{Black-Scholes}
+\label{fig:blackscholes}
+\includegraphics[width=7cm]{blackscholes-speedup.png}
+\includegraphics[width=7cm]{blackscholes-runtimes.png}
+\end{figure}
 
 Figure \ref{fig:blackscholes} shows results from an implementation of
 the Black-Scholes equation, executed with parameters corresponding to
@@ -346,8 +385,15 @@ $20,000,000$ options divided into $1000$ blocks.  We observe
 almost-linear scaling, but also significant overhead.  As the core of
 the benchmark program is a naïve parallel map across a list of twenty
 thousand elements (one process per element), this is not particularly
-surprising, given that EDI threads are somewhat heavy compared to
+surprising, given that Eden threads are somewhat heavy compared to
 lightweight GHC threads.
+
+\begin{figure}
+\caption{N-body problem}
+\label{fig:nbody}
+\includegraphics[width=7cm]{nbody-speedup.png}
+\includegraphics[width=7cm]{nbody-runtimes.png}
+\end{figure}
 
 This issue is particularly noticable in the results on Figure
 \ref{fig:nbody}, which computes accelerations for an N-body system
@@ -399,7 +445,7 @@ Our implementation is a very thin layer on top of the EDI primitives.
 An interesting project would be the implementation of a more
 sophisticated scheduler that tries to keep network traffic to a
 minimum, by keeping communicating threads on the same physical node
-(and perhaps does not even spawn physical EDI threads until
+(and perhaps does not even spawn physical Eden threads until
 necessary).  Haskell threads are extremely flexible due to their light
 weight, yet our implementation makes little use of them.
 
