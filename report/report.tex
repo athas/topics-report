@@ -248,12 +248,37 @@ at the very end, most likely due to virtualisation artifacts).
 
 \begin{figure}
 \caption{Parallel computation of Fibonacci number}
-\label{parfib}
+\label{fig:parfib}
 \includegraphics[width=7cm]{parfib_monad-speedup.png}
 \includegraphics[width=7cm]{parfib_monad-runtimes.png}
 \end{figure}
 
-\section{Conclusion}
+\section{Conclusions}
+
+It is possible to implement the Par monad on top of the distributed
+heap provided by Eden, although the mapping of \texttt{IVar}s to Eden
+channels requires nontrivial work to solve a resource leak problems.
+
+Our implementation of the Par monad is able to scale well across a
+distributed system, although its performance characteristics differ
+from the default Par monad implementation.  Notably, processes are far
+more expensive, and reading an \texttt{IVar} containing a large object
+may involve heavy network traffic.  This seems a fundamental problem
+with the idea of providing a common parallel programming interface -
+some measure of the cost of underlying abstractions must be available
+for sensible workload chunking to be possible, as parallel hardware is
+too diverse for an practical abstract cost model to be available the
+way it is for sequential programming.
+
+\subsection{Ideas for further work}
+
+Our implementation is a very thin layer on top of the EDI primitives.
+An interesting project would be the implementation of a more
+sophisticated scheduler that tries to keep network traffic to a
+minimum, by keeping communicating threads on the same physical node
+(and perhaps does not even spawn physical EDI threads until
+necessary).  Haskell threads are extremely flexible due to their light
+weight, yet our implementation makes little use of them.
 
 \bibliography{report}
 
