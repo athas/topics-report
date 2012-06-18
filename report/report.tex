@@ -115,6 +115,8 @@ data Mode = Connect | Stream | Data | Instantiate Int
 createC :: IO ( ChanName' a, a ) 
 connectToPort :: ChanName' a -> IO ()
 sendData :: Mode -> a -> IO ()
+spawnProcessAt :: Int -> IO () -> IO ()
+sendWith :: Strategy a -> ChanName' a -> a -> IO ()
 \end{lstlisting}
 
 The function \texttt{createC} creates a primitive imput channel and a
@@ -127,6 +129,8 @@ connect the outport to the corresponding inport. the \texttt{Data
 Mode} is used to send a single value whereas \texttt{Stream} is used
 to send the values of a data stream. The \texttt{Instantiate i} message
 is sent to start a remote process on PE i.
+
+\textbf{TODO}: Write about spawnProcessAt and sendWith
 
 Retrieving data is done implicitly by the runtime system which writes
 data received via an inport directly into a placeholder in the heap
@@ -205,9 +209,76 @@ diagram below.
 This should be sufficient to understand the purpose and usage of the
 Par Monad.
 
+\newpage
+
 \section{Implementing the Par Monad}
 
-TODO: Mads
+Par processes are easily implemented using EDI \newline
+
+\begin{lstlisting}
+newtype Par a = Par { runPar :: IO a }
+fork m = Par $ do spawnProcessAt 0 $ runPar m
+                  return ()
+\end{lstlisting}
+
+The interesting part is deciding how to represent an \texttt{IVar}
+using EDI. The obvious way to ... TODO ...
+
+Instead we represent an \texttt{IVar} as a channel for writing its
+value, as well as a channel for requesting its value. \newline
+
+\begin{lstlisting}
+data IVar a = IVar { iVarReadChan :: ChanName' [ChanName' a]
+                   , iVarWriteChan :: ChanName' a
+                   }
+\end{lstlisting}
+
+With this definition the \texttt{get} function can be implemented as 
+such: \newline
+
+\begin{lstlisting}[numbers=left, numberstyle=\tiny]
+get ivar = Par $ do
+             (c,x) <- createC
+             connectToPort (iVarReadChan ivar)
+             sendData Stream c
+             return x
+\end{lstlisting}
+
+On line 1 we create the channel from which we want to read the value
+stored in the \texttt{IVar}. On line 3-4 we connect to the given
+\texttt{IVar}'s read channel and send the channel we created on line 1. 
+Finally we return the value \texttt{x} written to the channel created on line 1. Remember this will block until a value has actually been written to 
+channel \texttt{c}.
+
+With this approach every \texttt{IVar} now has an associated lightweight
+Haskell thread that handles read requests. \newline
+
+\begin{lstlisting}[numbers=left, numberstyle=\tiny]
+new = Par $ do
+        (rdc,rd) <- createC
+        (wrc,wr) <- createC
+        _ <- forkIO $ do
+          let val = wr
+              cs  = rd
+          mapM_ (\c -> sendWith rseq c val) cs
+        return $ IVar rdc wrc
+\end{lstlisting}
+
+On line 2 we create the channel for reading and on line 3 we create
+the channel for writing the value of the  \texttt{IVar}. On lines 4 to
+7 we create a lightweight Haskell thread the handles all of the read
+request. Line 5 will block till a process has written a value to the
+write channel. On line 6 we utilize Edens ability to transmit streams
+element-by-element and handle each read request sequentially using
+\texttt{mapM\_}. This fixes our blackhole problem but unfortunately
+introduces a new one: The thread on lines 5 -7 never terminates as we
+can't tell when to stop waiting for more read requests. If there are
+no requests mapM\_ will be waiting indefinitely and as such represents
+a memory leak.
+
+\section{Memory Leak}
+
+TODO
 
 \section{Benchmarks}
 
