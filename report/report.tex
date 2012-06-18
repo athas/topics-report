@@ -1,4 +1,4 @@
-\documentclass[a4paper, oneside, final]{article}
+\documentclass[a4paper, oneside, final]{memoir}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[british]{babel}
@@ -7,6 +7,8 @@
 \usepackage{verbatim}
 \usepackage{listings}
 \usepackage{placeins}
+\usepackage{graphicx}
+\usepackage{amssymb}
 
 \lstset{
   language=Haskell, 
@@ -14,16 +16,15 @@
   basicstyle=\footnotesize
 }
 
-
 \renewcommand{\britishhyphenmins}{22} 
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
 
 \let\fref\undefined
 \let\Fref\undefined
 
-\usepackage{graphicx}
-\usepackage{amssymb}
+\counterwithout{section}{chapter}
 
-\setcounter{secnumdepth}{1} % Sæt overskriftsnummereringsdybde. Disable = -1.
+\setcounter{secnumdepth}{2} % Sæt overskriftsnummereringsdybde. Disable = -1.
 \setlength{\parskip}{0.25in}
 
 \pagestyle{plain}
