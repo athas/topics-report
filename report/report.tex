@@ -78,7 +78,7 @@ that  makes it faster to write parallel programs, however, they are
 not used in our implementation so we won't cover them here.
 
 In our case both the process abstraction and the skeletons are too
-high-level for  our need as were mainly interested in the distributed
+high-level for  our need as we're mainly interested in the distributed
 heap. Instead we use EDI, the Eden Implementation Language, to
 implement the Par Monad.
 
@@ -90,9 +90,9 @@ connects an outport of the sender process to an inport of the receiver
 process. Each machine runs a process, consisting of multiple threads,
 with a one-to-one relation between threads and outports. Each thread
 of a process evaluates some expression to normal form and sends the
-result via its outport
-
-In the type-system a channel is represented as 
+result via its outport. In the type-system a channel is represented as
+\texttt{ChanName} with three integers used to identify the inport
+connecting a channel with a process. \newline
 
 \begin{lstlisting}
 data ChanName' a = Chan Int# Int# Int#
@@ -103,6 +103,27 @@ connectToPort :: ChanName' a -> IO ()
 sendData :: Mode -> a -> IO ()
 \end{lstlisting}
 
+\texttt{createC} creates a primitive imput channel and a handle to
+access the data received via this channel. \texttt{connectToPort}
+connects the outport of the thread executing the function call to a
+given channel i.e. the corresponding inport. When using
+\texttt{sendData} you pass a mode as well as the data to be
+transmitted. The \texttt{Connect} \texttt{Mode} is initially sent to
+connect the outport to the corresponding inport. the \texttt{Data
+Mode} is used to send a single value whereas \texttt{Stream} is used
+to send the values of a data stream. The Instantiate i message is sent
+to start a remote process on PE i.
+
+Retrieving data is done implicitly by the runtime system which writes
+data received via an inport directly into a placeholder in the heap
+hence there is no primitive for reading data.
+
+When the reading placeholder is identified as garbage, the process
+holding the writing end can be terminated.
+
+This is what you need to know to understand the Par Monad
+implementation. For more information about Eden please refer
+to ``Eden - Parallel Functional Programming with Haskell''\cite{eden}
 
 \section{Par Monad}
 
