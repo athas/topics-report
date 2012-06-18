@@ -239,7 +239,7 @@ channel. \newline
 newtype IVar a = IVar (ChanName' a, a)
 \end{lstlisting}
 
-However, this value returned by \texttt{createC} is a backhole. In 
+gHowever, this value returned by \texttt{createC} is a backhole. In 
 the RTS, blackholes are thunks that are currently being evaluated by
 another thread. Consider the following program \newline 
 
@@ -307,6 +307,11 @@ list \texttt{cs} is infinite unless the channel is explicitly closed)
 as we can't tell when to stop waiting for more read requests. If there
 are no requests mapM\_ will be waiting indefinitely and as such
 represents a memory leak.
+
+Our approach is very similar to the \textit{remote data} concept
+described in \cite{remotedata}, although they solve the resource leak
+problem by permitting only a single read of the variable.  This is
+unfortunately not compatible with the Par monad model.
 
 \subsection{Solving the resource leak}
 
@@ -480,6 +485,7 @@ minimum, by keeping communicating threads on the same physical node
 necessary).  Haskell threads are extremely flexible due to their light
 weight, yet our implementation makes little use of them.
 
+\bibliographystyle{acm}
 \bibliography{report}
 
 \end{document}
