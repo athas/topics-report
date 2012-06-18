@@ -28,7 +28,8 @@
 
 \pagestyle{plain}
 
-\title{Topics in Programming Languages}
+\title{The Par monad with distributed heaps \newline \large{Topics in Programming Languages}}
+\author{Troels Henriksen \& Mads Hartmann Jensen}
 
 \begin{document}
 
@@ -82,7 +83,7 @@ process :: ( Trans a , Trans b ) => (a -> b) -> Process a b
 
 These two functions are all you need to write parallel programs using
 Eden. The example below shows a parallel implementation of the
-Fibonacci sequence \newline
+Fibonacci sequence. \newline
 
 \begin{lstlisting}
 fib :: Int -> Int
@@ -93,8 +94,8 @@ fib n = process fib # (n-1) + process fib # (n-2)
 
 Eden also provides a variety of skeletons for parallel processing
 tasks that makes it faster to write parallel programs. However, in
-our case both the process abstraction and the skeletons are too high-
-level for our need as we're mainly interested in the distributed
+our case both the process abstraction and the skeletons are too 
+high-level for our need as we're mainly interested in the distributed
 heap. Instead we use EDI, the Eden Implementation Language, to
 implement the Par Monad.
 
@@ -124,10 +125,10 @@ sendWith :: Strategy a -> ChanName' a -> a -> IO ()
 The function \texttt{createC} creates a primitive input channel and a
 handle to access the data received via this channel. The handle is
 simply represented as a normal Haskell value, however, when you try to
-access the value the RST will block until it has retrieved a value
-via the channel. On other words there are no primitives for reading
-data as this is done implicitly by the runtime system which writes
-data received via an inport directly into the placeholder in the heap.
+access the value the RST will block until it has retrieved a value via
+the channel. In other words there are no primitives for reading data
+as this is done implicitly by the runtime system which writes data
+received via an inport directly into the placeholder in the heap.
 \texttt{connectToPort} connects the outport of the thread executing
 the function call to a given channel i.e. the corresponding inport.
 When using \texttt{sendData} you pass a mode as well as the data to be
@@ -135,11 +136,11 @@ transmitted. The \texttt{Connect} \texttt{Mode} is initially sent to
 connect the outport to the corresponding inport. the \texttt{Data
 Mode} is used to send a single value whereas \texttt{Stream} is used
 to send the values of a data stream element-by-element. The
-\texttt{Instantiate i} message is sent to start a remote process on PE
-i.  \texttt{spawnProcessAt} starts a given process on a specific
-machine.  If you pass 0 it will use round-robin scheduling.
-\texttt{sendWith}  sends a value to a channel using a specific evaluation
-strategy.
+\texttt{Instantiate i} message is sent to start a remote process on
+processing element i.  \texttt{spawnProcessAt} starts a given process
+on a specific machine.  If you pass 0 it will use round-robin
+scheduling. \texttt{sendWith}  sends a value to a channel using a
+specific evaluation strategy.
 
 This is what you need to know to understand the Par Monad
 implementation. For more information about Eden please refer
@@ -171,7 +172,7 @@ The \texttt{new} function creates a new IVar, \texttt{get} reads the
 value stored in the IVar and \texttt{put} writes a value to the IVar.
 If you invoke \texttt{get} on an empty \texttt{IVar} it will block
 until a value is stored in the \texttt{IVar}. Readers familiar with
-concurrent programming in Haskell may notice That this approach is
+concurrent programming in Haskell may notice that this approach is
 very similar to the use of \texttt{MVar} with the main difference that
 IVars are write-once where \texttt{MVar}'s can be written multiple
 times.
@@ -194,11 +195,11 @@ runPar $ do
    get d
 \end{lstlisting}
 
-On line 1 four \texttt{IVar}'s are created. Lines 2-8 creates tasks
+On line 2 four \texttt{IVar}'s are created. Lines 3-8 creates tasks
 that read and write to different IVars in parallel. Line 9 reads the
 value stored in the IVar bound to d and as such this is the value
 returned by the entire program.The program is shown as a data-flow
-diagram below.
+diagram below. \newline
 
 \begin{lstlisting}
                             a
@@ -215,6 +216,12 @@ Par Monad.
 
 \section{Implementing the Par Monad}
 
+Now that we've introduced EDI and the Par Monad it is time see how 
+the two fit together. Our task is twofold: Figure out how to 
+represent Par processes (that is, implement \texttt{runPar} and 
+\texttt{fork}) and how to represent IVars using the primitive
+channel operations provided by EDI.
+
 Par processes are easily implemented using EDI \newline
 
 \begin{lstlisting}
@@ -223,9 +230,9 @@ fork m = Par $ do spawnProcessAt 0 $ runPar m
                   return ()
 \end{lstlisting}
 
-The interesting part is deciding how to represent an \texttt{IVar}
+As such the challenge lies in deciding how to represent an \texttt{IVar}
 using EDI. The obvious way to would be to represent it simply as a
-channel
+channel. \newline
 
 \begin{lstlisting}
 newtype IVar a = IVar (ChanName' a, a)
