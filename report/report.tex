@@ -36,6 +36,16 @@
 
 \maketitle
 
+\section*{Preamble} 
+
+This report has been written by Troels Henriksen and Mads Hartmann
+Jensen as part of the course Topics in Programming Languages taught
+in block 4 2012 at the department of Computer Science (DIKU) at the
+University of Copenhagen.
+
+Sections 1, 4.1, 5, and 6 has been written by Troels whereas
+sections 2, 3 and 4 has been written by Mads.
+
 \section{Abstract}
 
 After many false starts throughout the past twenty years, physical
@@ -265,7 +275,7 @@ data IVar a = IVar { iVarReadChan :: ChanName' [ChanName' a]
 \end{lstlisting}
 
 With this definition the \texttt{get} function can be implemented as 
-such: \newline
+follows: \newline
 
 \begin{lstlisting}[numbers=left, numberstyle=\tiny]
 get ivar = Par $ do
