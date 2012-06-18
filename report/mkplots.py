@@ -49,7 +49,7 @@ for desc,timings in tests.items():
     rects1=ax.bar(ind, timingseden, width, color='b')
     rects2=ax.bar(ind+width, timingsstd, width, color='r')
 
-    ax.legend( (rects1[0], rects2[0]), ('Eden', 'Default') )
+    ax.legend( (rects1[0], rects2[0]), ('Eden backend', 'Default backend') )
     fig.savefig(desc.split(' ')[0]+"-runtimes.png")
 
     fig2 = plt.figure()
@@ -62,5 +62,5 @@ for desc,timings in tests.items():
     ax.plot(improvementseden, color='b')
     ax.plot(improvementsstd, color='r')
     ax.grid(True,which="both",ls="-")
-    ax.legend((rects1[0], rects2[0]), ('Eden', 'Default'),loc=2)
+    ax.legend((rects1[0], rects2[0]), ('Eden backend', 'Default backend'),loc=2)
     fig2.savefig(desc.split(' ')[0]+"-speedup.png")
