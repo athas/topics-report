@@ -291,6 +291,13 @@ stored in the \texttt{IVar}. On line 3-4 we connect to the given
 Finally we return the value \texttt{x} written to the channel created on line 1. Remember this will block until a value has actually been written to 
 channel \texttt{c}.
 
+Implementing \texttt{put\_} (the head-strict version of \texttt{put})
+is trivial. \newline
+
+\begin{lstlisting}
+put_ ivar x = Par $ sendWith rseq (iVarWriteChan ivar) x
+\end{lstlisting}
+
 With this approach every \texttt{IVar} now has an associated lightweight
 Haskell thread that handles read requests. \newline
 
