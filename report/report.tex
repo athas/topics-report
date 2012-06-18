@@ -264,7 +264,7 @@ data IVar a = IVar { iVarReadChan :: ChanName' [ChanName' a]
 \end{lstlisting}
 
 With this definition the \texttt{get} function can be implemented as 
-such: \newline
+follows: \newline
 
 \begin{lstlisting}[numbers=left, numberstyle=\tiny]
 get ivar = Par $ do
