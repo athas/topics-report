@@ -190,10 +190,28 @@ Par Monad.
 
 TODO: Mads
 
-\section{Benchmarks}
+\subsection{Resource leak}
 
-We have performed some limited benchmarking of our implementation of
-the Par backend, wherein we compare our performance to the default
+I'll be writing something about the process leak here.
+
+\section{Performance}
+
+\begin{figure}
+\caption{Black-Scholes}
+\label{fig:blackscholes}
+\includegraphics[width=7cm]{blackscholes-speedup.png}
+\includegraphics[width=7cm]{blackscholes-runtimes.png}
+\end{figure}
+
+\begin{figure}
+\caption{Parallel computation of Fibonacci number}
+\label{fig:parfib}
+\includegraphics[width=7cm]{parfib_monad-speedup.png}
+\includegraphics[width=7cm]{parfib_monad-runtimes.png}
+\end{figure}
+
+We have performed limited benchmarking of our implementation of the
+Par backend, wherein we compare our performance to the default
 implementation.  Tests were performed on
 $\texttt{sci-0},\texttt{sci-1},\ldots,\texttt{sci-6}$, six computation
 nodes available on the DIKU network, with each running a quad-core
@@ -237,21 +255,6 @@ consequence, since the runtime is dominated by the actual work, the
 increased overhead of EDI process creation and communication is not
 very noticable, and we scale essentially linearly (except for a hiccup
 at the very end, most likely due to virtualisation artifacts).
-
-\begin{figure}
-\caption{Black-Scholes}
-\label{fig:blackscholes}
-\includegraphics[width=7cm]{blackscholes-speedup.png}
-\includegraphics[width=7cm]{blackscholes-runtimes.png}
-\end{figure}
-
-
-\begin{figure}
-\caption{Parallel computation of Fibonacci number}
-\label{fig:parfib}
-\includegraphics[width=7cm]{parfib_monad-speedup.png}
-\includegraphics[width=7cm]{parfib_monad-runtimes.png}
-\end{figure}
 
 \section{Conclusions}
 
